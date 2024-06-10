@@ -1068,7 +1068,7 @@ def get_requires_for_build_wheel(config_settings: Optional[Dict[str, str]] = Non
     if os.environ.get('NINJA') is None and _env_ninja_command() is None:
         dependencies.append(f'ninja >= {_NINJA_REQUIRED_VERSION}')
 
-    if sys.platform.startswith('linux') and not shutil.which('patchelf'):
+    if sys.platform.startswith('linux') and not shutil.which('patchelf') and not shutil.which('chrpath'):
         dependencies.append('patchelf >= 0.11.0')
 
     return dependencies

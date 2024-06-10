@@ -17,13 +17,16 @@ import pytest
 import mesonpy
 
 
+@pytest.mark.parametrize('system_chrpath', ['chrpath', None], ids=['chrpath', 'nochrpath'])
 @pytest.mark.parametrize('system_patchelf', ['patchelf', None], ids=['patchelf', 'nopatchelf'])
 @pytest.mark.parametrize('ninja', [None, '1.8.1', '1.8.3'], ids=['noninja', 'oldninja', 'newninja'])
-def test_get_requires_for_build_wheel(monkeypatch, package_pure, system_patchelf, ninja):
+def test_get_requires_for_build_wheel(monkeypatch, package_pure, system_chrpath, system_patchelf, ninja):
     # the NINJA environment variable affects the ninja executable lookup and breaks the test
     monkeypatch.delenv('NINJA', raising=False)
 
     def which(prog: str) -> bool:
+        if prog == 'chrpath':
+            return system_chrpath
         if prog == 'patchelf':
             return system_patchelf
         if prog == 'ninja':
@@ -48,7 +51,7 @@ def test_get_requires_for_build_wheel(monkeypatch, package_pure, system_patchelf
     if ninja is None or mesonpy._parse_version_string(ninja) < (1, 8, 2):
         expected.add('ninja')
 
-    if system_patchelf is None and sys.platform.startswith('linux'):
+    if system_patchelf is None and system_chrpath is None and sys.platform.startswith('linux'):
         expected.add('patchelf')
 
     requirements = mesonpy.get_requires_for_build_wheel()

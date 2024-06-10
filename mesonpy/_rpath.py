@@ -18,12 +18,23 @@ if typing.TYPE_CHECKING:
 
 if sys.platform == 'linux':
 
-    def _get_rpath(filepath: Path) -> List[str]:
-        r = subprocess.run(['patchelf', '--print-rpath', os.fspath(filepath)], capture_output=True, text=True)
-        return r.stdout.strip().split(':')
+    try:
+        subprocess.run(['patchelf', '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        def _get_rpath(filepath: Path) -> List[str]:
+            r = subprocess.run(['chrpath', '--list', os.fspath(filepath)], capture_output=True, text=True)
+            return r.stdout.rsplit(": ", 1)[-1].strip().split(':')
 
-    def _set_rpath(filepath: Path, rpath: Iterable[str]) -> None:
-        subprocess.run(['patchelf','--set-rpath', ':'.join(rpath), os.fspath(filepath)], check=True)
+        def _set_rpath(filepath: Path, rpath: Iterable[str]) -> None:
+            subprocess.run(['chrpath', '--replace', ':'.join(rpath), os.fspath(filepath)], check=True)
+    else:
+        def _get_rpath(filepath: Path) -> List[str]:
+            r = subprocess.run(['patchelf', '--print-rpath', os.fspath(filepath)], capture_output=True, text=True)
+            return r.stdout.strip().split(':')
+
+        def _set_rpath(filepath: Path, rpath: Iterable[str]) -> None:
+            subprocess.run(['patchelf', '--set-rpath', ':'.join(rpath), os.fspath(filepath)], check=True)
+
 
     def fix_rpath(filepath: Path, libs_relative_path: str) -> None:
         old_rpath = _get_rpath(filepath)
